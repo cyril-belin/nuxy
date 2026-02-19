@@ -1,3 +1,9 @@
+import { defineNuxtConfig } from 'nuxt/config'
+
 export default defineNuxtConfig({
-    modules: ['nuxt-auth-utils']
+    modules: [
+        'nuxt-auth-utils',
+        '@nuxt/ui'
+    ]
+
 })

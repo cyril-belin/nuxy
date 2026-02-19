@@ -1,5 +1,5 @@
 import { defineNuxtConfig } from 'nuxt/config'
 
 export default defineNuxtConfig({
-    // Layer configuration
+    modules: ['@nuxt/ui']
 })

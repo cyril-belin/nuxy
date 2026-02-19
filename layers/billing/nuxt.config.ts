@@ -1,3 +1,5 @@
+import { defineNuxtConfig } from 'nuxt/config'
+
 export default defineNuxtConfig({
-    // Configuration specific to billing layer
+    // Layer configuration
 })
