@@ -163,10 +163,10 @@
           </UFormGroup>
 
           <div class="flex gap-4 pt-4">
-            <UButton color="gray" variant="ghost" block class="rounded-xl font-bold" @click="isModalOpen = false">
+            <UButton color="gray" variant="ghost" class="flex-1 rounded-xl font-bold justify-center" @click="isModalOpen = false">
               Annuler
             </UButton>
-            <UButton type="submit" color="indigo" block :loading="inviting" class="rounded-xl font-black shadow-lg shadow-indigo-500/20">
+            <UButton type="submit" color="indigo" :loading="inviting" class="flex-1 rounded-xl font-black justify-center shadow-lg shadow-indigo-500/20">
               Envoyer l'invitation
             </UButton>
           </div>

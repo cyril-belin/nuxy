@@ -10,6 +10,23 @@ export const useApi = () => {
                 method: 'POST',
                 body: data
             })
+        },
+        async update(id: number | string, data: any) {
+            return await ($fetch as any)(`/api/projects/${id}`, {
+                method: 'PATCH',
+                body: data
+            })
+        },
+        async delete(id: number | string) {
+            return await ($fetch as any)(`/api/projects/${id}`, {
+                method: 'DELETE'
+            })
+        },
+        async archive(id: number | string) {
+            return await ($fetch as any)(`/api/projects/${id}`, {
+                method: 'PATCH',
+                body: { status: 'Archivé' }
+            })
         }
     }
 

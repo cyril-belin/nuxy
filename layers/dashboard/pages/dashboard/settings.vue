@@ -108,7 +108,7 @@
 </template>
 
 <script setup lang="ts">
-import * as z from 'zod'
+import { z } from 'zod'
 import type { FormSubmitEvent } from '#ui/types'
 
 

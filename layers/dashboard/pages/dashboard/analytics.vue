@@ -169,6 +169,83 @@
         </div>
       </div>
 
+      <!-- Secondary Content Grid: Revenue & Reports -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Revenue Chart -->
+        <div class="lg:col-span-2 bg-white/5 border border-white/10 rounded-3xl p-8 relative overflow-hidden group">
+          <div class="flex items-center justify-between mb-8">
+            <div>
+              <h3 class="text-lg font-black text-white tracking-tight">Revenus (MRR)</h3>
+              <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Derniers 6 mois</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+              <UIcon name="i-heroicons-banknotes" class="w-5 h-5 text-emerald-400" />
+            </div>
+          </div>
+
+          <div class="h-48 flex items-end gap-3 px-2">
+            <div v-for="rev in analytics.revenueByMonth" :key="rev.month"
+              class="flex-1 flex flex-col items-center gap-3 group/rev"
+            >
+              <div 
+                class="w-full bg-white/5 border border-white/10 rounded-2xl relative group-hover/rev:bg-emerald-500/20 group-hover/rev:border-emerald-500/30 transition-all duration-700 overflow-hidden"
+                :style="{ height: `${(rev.amount / maxRevenue) * 100}%` }"
+              >
+                <div class="absolute inset-0 bg-gradient-to-t from-emerald-500/20 to-transparent opacity-0 group-hover/rev:opacity-100 transition-opacity"></div>
+                <div class="opacity-0 group-hover/rev:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-900 border border-white/10 text-white text-[10px] font-black px-2.5 py-1 rounded-lg whitespace-nowrap z-10">
+                  {{ rev.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) }}
+                </div>
+              </div>
+              <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest">{{ rev.month }}</span>
+            </div>
+          </div>
+          
+          <div class="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
+            <div class="flex flex-col">
+              <span class="text-[10px] font-bold text-gray-500 tracking-widest uppercase mb-1">Total Période</span>
+              <span class="text-2xl font-black text-white">
+                {{ totalRevenue.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) }}
+              </span>
+            </div>
+
+
+
+            <UButton color="emerald" variant="soft" icon="i-heroicons-presentation-chart-line" class="rounded-xl font-bold">
+              Rapport complet
+            </UButton>
+          </div>
+        </div>
+
+        <!-- Real-time Insights -->
+        <div class="bg-white/5 border border-white/10 rounded-3xl p-8 flex flex-col justify-between">
+          <div>
+            <h3 class="text-lg font-black text-white tracking-tight mb-2">Live Insights</h3>
+            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-6">Activité en direct</p>
+            
+            <div class="space-y-6">
+              <div class="flex items-center gap-4">
+                <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <div class="text-sm font-bold text-white">{{ analytics.realtimeVisitors }} sessions actives</div>
+              </div>
+              <div class="flex items-center gap-4">
+                <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
+                <div class="text-sm font-bold text-white">3 nouvelles inscriptions</div>
+              </div>
+              <div class="flex items-center gap-4">
+                <div class="w-2 h-2 rounded-full bg-amber-500"></div>
+                <div class="text-sm font-bold text-white">2 paiements réussis</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-4 mt-6">
+            <div class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Conseil IA</div>
+            <p class="text-xs text-gray-300 leading-relaxed font-medium">Votre trafic mobile a augmenté de <span class="text-indigo-400 font-bold">14%</span>. Optimisez vos pages d'atterrissage pour les petits écrans.</p>
+          </div>
+        </div>
+      </div>
+
+
       <!-- Bottom Row -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Top Pages Table -->
@@ -276,31 +353,17 @@
 </template>
 
 <script setup lang="ts">
-interface AnalyticsStat {
-  label: string
-  value: string
-  change: string
-  changeType: 'increase' | 'decrease'
-  icon: string
-  color: string
-  sparkline: number[]
-}
+import type { AnalyticsData } from '../../types/analytics'
+// Local interfaces removed, using imported AnalyticsData
 
-interface AnalyticsData {
-  overview: AnalyticsStat[]
-  trafficByDay: { day: string; visitors: number; pageViews: number }[]
-  topPages: { path: string; views: number; avgTime: string; bounceRate: number }[]
-  conversionFunnel: { stage: string; count: number; percentage: number }[]
-  realtimeVisitors: number
-  deviceBreakdown: { device: string; percentage: number; color: string }[]
-  referrerSources: { source: string; visitors: number; trend: 'up' | 'down'; icon: string }[]
-}
+import type { IApiInstance } from '../../../base/plugins/api'
 
 definePageMeta({
   layout: 'dashboard',
   middleware: 'auth'
 })
 
+const { $api } = useNuxtApp() as unknown as { $api: IApiInstance }
 const activeRange = ref('30j')
 
 const dateRanges = [
@@ -310,7 +373,14 @@ const dateRanges = [
   { label: '12m', value: '12m' }
 ]
 
-const { data: analytics, pending } = useFetch<AnalyticsData>('/api/analytics')
+// Fetch data using our repository
+const { data: analytics, pending, refresh } = useAsyncData(
+  'analytics',
+  () => $api.analytics.getDashboardAnalytics({ range: activeRange.value }),
+  {
+    watch: [activeRange]
+  }
+)
 
 const colorStyles: Record<string, { bg: string; text: string; sparkline: string; sparklineHover: string; bar: string; iconBg: string }> = {
   indigo:  { bg: 'rgba(99,102,241,0.1)',  text: '#818cf8', sparkline: 'rgba(99,102,241,0.3)',  sparklineHover: 'rgba(99,102,241,0.5)',  bar: '#6366f1', iconBg: 'rgba(99,102,241,0.1)' },
@@ -319,10 +389,23 @@ const colorStyles: Record<string, { bg: string; text: string; sparkline: string;
   purple:  { bg: 'rgba(168,85,247,0.1)',  text: '#c084fc', sparkline: 'rgba(168,85,247,0.3)',  sparklineHover: 'rgba(168,85,247,0.5)',  bar: '#a855f7', iconBg: 'rgba(168,85,247,0.1)' }
 }
 
+const maxRevenue = computed(() => {
+  if (!analytics.value?.revenueByMonth) return 1
+  return Math.max(...analytics.value.revenueByMonth.map((r: { amount: number }) => r.amount))
+})
+
+const totalRevenue = computed(() => {
+  if (!analytics.value?.revenueByMonth) return 0
+  return analytics.value.revenueByMonth.reduce((acc: number, curr: { amount: number }) => acc + curr.amount, 0)
+})
+
 const maxPageViews = computed(() => {
   if (!analytics.value) return 1
   return Math.max(...analytics.value.trafficByDay.map((d: { pageViews: number }) => d.pageViews))
 })
+
+
+
 </script>
 
 <style scoped>

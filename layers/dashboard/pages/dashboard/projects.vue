@@ -49,8 +49,8 @@
               <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Créé le {{ project.createdAt }}</p>
             </div>
           </div>
-          <UDropdown :items="projectActions(project)" :ui="{ rounded: 'rounded-xl', text: 'font-bold' }">
-            <UButton color="gray" variant="ghost" icon="i-heroicons-ellipsis-vertical" class="rounded-lg" />
+          <UDropdown :items="projectActions(project)" :ui="{ rounded: 'rounded-xl', shadow: 'shadow-2xl', ring: 'ring-1 ring-white/10', background: 'bg-gray-950' }">
+            <UButton color="gray" variant="ghost" icon="i-heroicons-ellipsis-vertical" class="rounded-lg hover:bg-white/10" />
           </UDropdown>
         </div>
 
@@ -114,10 +114,10 @@
           </UFormGroup>
 
           <div class="flex gap-4 pt-4">
-            <UButton color="gray" variant="ghost" block class="rounded-xl font-bold" @click="isModalOpen = false">
+            <UButton color="gray" variant="ghost" class="flex-1 rounded-xl font-bold justify-center" @click="isModalOpen = false">
               Annuler
             </UButton>
-            <UButton type="submit" color="indigo" block :loading="creating" class="rounded-xl font-black shadow-lg shadow-indigo-500/20">
+            <UButton type="submit" color="indigo" :loading="creating" class="flex-1 rounded-xl font-black justify-center shadow-lg shadow-indigo-500/20">
               Créer le projet
             </UButton>
           </div>
@@ -134,6 +134,8 @@ const newProjectName = ref('')
 const newProjectDesc = ref('')
 const creating = ref(false)
 const toast = useToast()
+
+const { projects: api } = useApi()
 
 definePageMeta({
   layout: 'dashboard',
@@ -170,11 +172,53 @@ function statusColor(status: string) {
   }
 }
 
-function projectActions(project: any) {
+function projectActions(project: Project) {
   return [
-    [{ label: 'Détails', icon: 'i-heroicons-eye' }, { label: 'Éditer', icon: 'i-heroicons-pencil-square' }],
-    [{ label: 'Archiver', icon: 'i-heroicons-archive-box' }, { label: 'Supprimer', icon: 'i-heroicons-trash', color: 'red' }]
+    [
+      { label: 'Détails', icon: 'i-heroicons-eye', click: () => toast.add({ title: 'Info', description: 'Détails bientôt disponibles' }) }, 
+      { label: 'Éditer', icon: 'i-heroicons-pencil-square', click: () => editProject(project) }
+    ],
+    [
+      { label: 'Archiver', icon: 'i-heroicons-archive-box', click: () => archiveProject(project.id) }, 
+      { label: 'Supprimer', icon: 'i-heroicons-trash', color: 'red', click: () => deleteProject(project.id) }
+    ]
   ]
+}
+
+async function editProject(project: Project) {
+  // Simple edit simulation - in a real app this would open a modal
+  const newName = prompt('Nouveau nom du projet', project.name)
+  if (!newName || newName === project.name) return
+  
+  try {
+    await api.update(project.id, { name: newName })
+    toast.add({ title: 'Mis à jour', description: 'Le projet a été renommé', color: 'emerald' })
+    await refresh()
+  } catch (err) {
+    toast.add({ title: 'Erreur', description: 'Échec de la mise à jour', color: 'red' })
+  }
+}
+
+async function archiveProject(id: number) {
+  try {
+    await api.archive(id)
+    toast.add({ title: 'Archivé', description: 'Le projet a été déplacé aux archives', color: 'amber' })
+    await refresh()
+  } catch (err) {
+    toast.add({ title: 'Erreur', description: 'Échec de l\'archivage', color: 'red' })
+  }
+}
+
+async function deleteProject(id: number) {
+  if (!confirm('Êtes-vous sûr de vouloir supprimer ce projet ?')) return
+  
+  try {
+    await api.delete(id)
+    toast.add({ title: 'Supprimé', description: 'Le projet a été supprimé definitivement', color: 'emerald' })
+    await refresh()
+  } catch (err) {
+    toast.add({ title: 'Erreur', description: 'Échec de la suppression', color: 'red' })
+  }
 }
 
 async function createProject() {
@@ -182,10 +226,7 @@ async function createProject() {
   
   creating.value = true
   try {
-    await $fetch('/api/projects', {
-      method: 'POST',
-      body: { name: newProjectName.value, description: newProjectDesc.value }
-    })
+    await api.create({ name: newProjectName.value, description: newProjectDesc.value })
     
     toast.add({ title: 'Succès', description: 'Projet créé avec succès', color: 'green' })
     isModalOpen.value = false

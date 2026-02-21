@@ -166,13 +166,14 @@
 </template>
 
 <script setup lang="ts">
+import { useSubscription } from '../../../billing/composables/useSubscription'
 
 definePageMeta({
   layout: 'dashboard',
   middleware: 'auth'
 })
 
-const isLoadingPortal = ref(false)
+const { isLoading: isLoadingPortal, error: subscriptionError, subscribe, openPortal } = useSubscription()
 
 const usageMetrics = [
   { label: 'Utilisateurs Actifs', value: '4', limit: '5', percentage: 80, isWarning: true },
@@ -187,26 +188,18 @@ const invoices = [
   { id: 'INV-2026-001', date: '24 Nov 2025', status: 'Payée', amount: '€49.00' }
 ]
 
-// Implementation based on the NotebookLM "nuxt / vue technique"
-// 1. Client-Side Interactions uses $fetch instead of useFetch
-// 2. Ref-First Strategy (isLoadingPortal)
-// 3. Prevent Client Side Mismatches
 const manageSubscription = async () => {
-  isLoadingPortal.value = true
-  try {
-    // Expected behavior: call the API to create Stripe session
-    // const response = await $fetch('/api/users/access-portal', {
-    //   method: 'POST'
-    // })
-    // if (response.url) window.location.href = response.url
-    
-    // Fallback UI Simulation
-    await new Promise(resolve => setTimeout(resolve, 800))
-    console.log('Redirecting to external Stripe billing portal...')
-  } catch (error) {
-    console.error('Failed to access billing portal:', error)
-  } finally {
-    isLoadingPortal.value = false
+  await openPortal()
+  if (subscriptionError.value) {
+    // If portal fails (usually because no stripe customer exists yet), try to start a subscription
+    await subscribe()
+    if (subscriptionError.value) {
+      useToast().add({
+        title: 'Erreur',
+        description: subscriptionError.value,
+        color: 'red'
+      })
+    }
   }
 }
 </script>
